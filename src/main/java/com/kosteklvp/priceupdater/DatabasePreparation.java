@@ -3,6 +3,7 @@ package com.kosteklvp.priceupdater;
 import java.io.IOException;
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,6 +44,9 @@ public class DatabasePreparation {
 
   @Autowired
   MatchdayRepo matchdayRepo;
+
+  @Autowired
+  PlayerRepo playerRepo;
 
 //  @Bean
   public CommandLineRunner loadCurrentGameRound() {
@@ -124,14 +128,27 @@ public class DatabasePreparation {
     };
   }
 
+//  @Bean
+  public CommandLineRunner test(Players2MatchdaysRepo players2MatchdaysRepo) {
+    return args -> {
+      Optional<Matchday> matchday = matchdayRepo.findById(Long.valueOf(1));
+      Optional<Player> player = playerRepo.findById(Long.valueOf(48716));
+
+      Players2Matchdays players2Matchdays = Players2Matchdays.builder().player(player.get()).matchday(matchday.get())
+          .valueThen(34.5).build();
+
+      players2MatchdaysRepo.save(players2Matchdays);
+    };
+  }
+
   @Bean
   public CommandLineRunner loadPrices(Players2MatchdaysRepo players2MatchdaysRepo) {
     return args -> {
-      List<Players2Matchdays> players2Matchdays = List.of();
-      Optional<Matchday> matchday = matchdayRepo.findById(Long.valueOf(1));
+      List<Players2Matchdays> players2Matchdays = new ArrayList<>();
+      Matchday matchday = matchdayRepo.findById(Long.valueOf(10)).get();
 
       URIBuilder uriBuilder = new URIBuilder(UEFAGaming.ServiceURL.PLAYERS.get())
-          .setParameter(UEFAGaming.PlayersJSONKey.GAMEDAY_ID.get(), Long.toString(matchday.get().getId()))
+          .setParameter(UEFAGaming.PlayersJSONKey.GAMEDAY_ID.get(), Long.toString(matchday.getId()))
           .setParameter(UEFAGaming.PlayersJSONKey.LANGUAGE.get(), UEFAGaming.DEFAULT_LANGUAGE);
       String jsonString = getJSON(uriBuilder.build());
 
@@ -144,15 +161,18 @@ public class DatabasePreparation {
           .map(jsonPlayer -> Player.builder()
               .id(Long.parseLong((String) ((JSONObject) jsonPlayer).get(UEFAGaming.PlayersJSONKey.ID.get())))
               .name((String) ((JSONObject) jsonPlayer).get(UEFAGaming.PlayersJSONKey.NAME.get()))
-              .club(Club.builder().id(Long.parseLong((String) ((JSONObject) jsonPlayer).get(
-                  UEFAGaming.PlayersJSONKey.TEAM_ID.get())))
+              .value((double) ((JSONObject) jsonPlayer).get(UEFAGaming.PlayersJSONKey.VALUE.get()))
+              .club(Club.builder()
+                  .id(Long.parseLong((String) ((JSONObject) jsonPlayer).get(UEFAGaming.PlayersJSONKey.TEAM_ID.get())))
                   .build())
               .build())
           .collect(Collectors.toList());
 
       for (Player player : players) {
-        players2Matchdays.add(Players2Matchdays.builder().matchday((Matchday) matchday.get()).player(player)
-            .valueThen(0)
+        players2Matchdays.add(Players2Matchdays.builder()
+            .matchday(matchday)
+            .player(player)
+            .valueThen(player.getValue())
             .build());
       }
 

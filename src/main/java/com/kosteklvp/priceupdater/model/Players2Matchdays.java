@@ -1,30 +1,32 @@
 package com.kosteklvp.priceupdater.model;
 
-import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.IdClass;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.MapsId;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@IdClass(Players2MatchdaysID.class)
 public class Players2Matchdays {
 
-  @EmbeddedId
-  private Players2MatchdaysID id;
-
+  @Id
   @ManyToOne
-  @MapsId("playerId")
-  @JoinColumn(name = "student_id")
+  @JoinColumn(name = "playerID", referencedColumnName = "ID")
   private Player player;
 
+  @Id
   @ManyToOne
-  @MapsId("matchdayId")
-  @JoinColumn(name = "matchday_id")
+  @JoinColumn(name = "matchdayID", referencedColumnName = "ID")
   private Matchday matchday;
 
   private double valueThen;
