@@ -1,5 +1,6 @@
 package com.kosteklvp.priceupdater.model;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import javax.persistence.CascadeType;
@@ -31,7 +32,7 @@ public class Player {
   private String name;
 
   @Transient
-  private double value;
+  private BigDecimal value;
 
   @ManyToOne(cascade = CascadeType.REMOVE)
   @JoinColumn(name = "clubID")

@@ -1,4 +1,4 @@
-package com.kosteklvp.priceupdater.utilities;
+package com.kosteklvp.priceupdater.uefa;
 
 import lombok.AllArgsConstructor;
 import lombok.experimental.UtilityClass;

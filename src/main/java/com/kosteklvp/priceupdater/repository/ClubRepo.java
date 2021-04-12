@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import com.kosteklvp.priceupdater.model.Club;
 
 @Repository
-public interface TeamRepo extends JpaRepository<Club, Long> {
+public interface ClubRepo extends JpaRepository<Club, Long> {
 
 }

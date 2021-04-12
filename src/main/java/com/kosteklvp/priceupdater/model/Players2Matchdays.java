@@ -1,5 +1,7 @@
 package com.kosteklvp.priceupdater.model;
 
+import java.math.BigDecimal;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.IdClass;
@@ -29,6 +31,6 @@ public class Players2Matchdays {
   @JoinColumn(name = "matchdayID", referencedColumnName = "ID")
   private Matchday matchday;
 
-  private double valueThen;
+  private BigDecimal valueThen;
 
 }
