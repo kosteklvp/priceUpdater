@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -26,6 +25,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.ObjectUtils;
 
 import com.kosteklvp.priceupdater.model.Club;
 import com.kosteklvp.priceupdater.model.Matchday;
@@ -69,7 +69,7 @@ public class DatabasePreparation {
     URIBuilder uriBuilder = new URIBuilder(UEFAGaming.ServiceURL.LIVE_MIXED.get());
     String jsonString = getJSON(uriBuilder.build());
 
-    if (StringUtils.isEmpty(jsonString)) {
+    if (ObjectUtils.isEmpty(jsonString)) {
       return;
     }
 
@@ -87,6 +87,8 @@ public class DatabasePreparation {
     for (int i = 1; i < 10; i++) {
       matchdayRepo.save(Matchday.builder().id(i).build());
     }
+
+    matchdayRepo.save(Matchday.builder().id(11).build());
   }
 
 //
@@ -97,7 +99,7 @@ public class DatabasePreparation {
         .setParameter(UEFAGaming.PlayersJSONKey.LANGUAGE.get(), UEFAGaming.DEFAULT_LANGUAGE);
     String jsonString = getJSON(uriBuilder.build());
 
-    if (StringUtils.isEmpty(jsonString)) {
+    if (ObjectUtils.isEmpty(jsonString)) {
       return;
     }
 
@@ -125,7 +127,7 @@ public class DatabasePreparation {
         .setParameter(UEFAGaming.PlayersJSONKey.LANGUAGE.get(), UEFAGaming.DEFAULT_LANGUAGE);
     String jsonString = getJSON(uriBuilder.build());
 
-    if (StringUtils.isEmpty(jsonString)) {
+    if (ObjectUtils.isEmpty(jsonString)) {
       return;
     }
 
@@ -150,16 +152,15 @@ public class DatabasePreparation {
   }
 
   private void loadPrices() throws Exception {
-    Matchday currentMatchday = matchdayRepo.findTopByOrderByIdDesc();
     List<Players2Matchdays> players2Matchdays = new ArrayList<>();
-    Matchday matchday = matchdayRepo.findById(currentMatchday.getId()).get();
+    Matchday matchday = Matchday.builder().id(Long.valueOf(11)).build();
 
     URIBuilder uriBuilder = new URIBuilder(UEFAGaming.ServiceURL.PLAYERS.get())
         .setParameter(UEFAGaming.PlayersJSONKey.GAMEDAY_ID.get(), Long.toString(matchday.getId()))
         .setParameter(UEFAGaming.PlayersJSONKey.LANGUAGE.get(), UEFAGaming.DEFAULT_LANGUAGE);
     String jsonString = getJSON(uriBuilder.build());
 
-    if (StringUtils.isEmpty(jsonString)) {
+    if (ObjectUtils.isEmpty(jsonString)) {
       return;
     }
 
@@ -190,7 +191,6 @@ public class DatabasePreparation {
     players2MatchdaysRepo.saveAll(players2Matchdays);
   };
 
-//
   private String getJSON(URI uri) throws IOException {
 
     CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -221,7 +221,7 @@ public class DatabasePreparation {
       httpClient.close();
     }
 
-    return StringUtils.EMPTY;
+    return "";
   }
 
 }

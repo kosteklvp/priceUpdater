@@ -1,6 +1,8 @@
 package com.kosteklvp.priceupdater.reddit;
 
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,6 +14,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.kosteklvp.priceupdater.model.Matchday;
 import com.kosteklvp.priceupdater.repository.Players2MatchdaysRepo;
 
 import lombok.AllArgsConstructor;
@@ -24,7 +27,9 @@ public class RedditPostGenerator {
   @Bean
   public CommandLineRunner generateRedditPost(Players2MatchdaysRepo players2MatchdaysRepo) {
     return args -> {
-      List<Object[]> priceChanges = players2MatchdaysRepo.getPriceChangesByGameday();
+      List<Object[]> priceChanges = players2MatchdaysRepo.getPriceChangesByMatchday(
+          Matchday.builder().id(Long.valueOf(10)).build());
+
       List<Object[]> priceRises = priceChanges.stream()
           .filter(record -> ((BigDecimal) record[PriceChangeIndex.CHANGE.get()]).signum() > 0)
           .collect(Collectors.toList());
@@ -34,24 +39,21 @@ public class RedditPostGenerator {
 
       StringBuilder postText = new StringBuilder();
 
-      postText.append("Price changes - MD10").append("\n").append("\n");
-
       postText.append(String.format("# Price risers (%s):", priceRises.size()));
       postText.append(generateTable(priceRises, PriceChangeType.RISE));
 
       postText.append(String.format("# Price fallers (%s):", priceFalls.size()));
       postText.append(generateTable(priceFalls, PriceChangeType.FALL));
 
-      saveToFile(postText.toString());
+      saveTextToFile(postText.toString(), "target/priceUpdates.txt");
     };
   }
 
-  private void saveToFile(String fileText) throws FileNotFoundException {
-    final String FILENAME = "priceUpdates.txt";
+  private void saveTextToFile(String text, String fileName) throws FileNotFoundException {
+    PrintWriter out = new PrintWriter(new OutputStreamWriter(new FileOutputStream(fileName)));
 
-    PrintWriter out = new PrintWriter(FILENAME);
-    out.println(fileText);
-    log.info("REDDIT POST SAVED IN \"{}\"", FILENAME);
+    out.println(text);
+    log.info("REDDIT POST SAVED IN \"{}\"", fileName);
 
     out.close();
   }
@@ -87,13 +89,9 @@ public class RedditPostGenerator {
       table.append(record[PriceChangeIndex.CURRENT_PRICE.get()]).append("|");
 
       BigDecimal priceChange = (BigDecimal) record[PriceChangeIndex.CHANGE.get()];
-      if (priceChange.compareTo(new BigDecimal("0.1")) > 0 ||
-          priceChange.compareTo(new BigDecimal("-0.1")) < 0) {
-        table.append("**").append(PriceChangeType.RISE.equals(priceChangeType) ? "+" : "")
-            .append(priceChange).append("**");
-      } else {
-        table.append(PriceChangeType.RISE.equals(priceChangeType) ? "+" : "").append(priceChange);
-      }
+      table.append("**")
+          .append(PriceChangeType.RISE.equals(priceChangeType) ? "+" : "").append(priceChange)
+          .append("**");
       table.append("|\n");
     }
     table.append("\n").append("&#x200B;").append("\n");

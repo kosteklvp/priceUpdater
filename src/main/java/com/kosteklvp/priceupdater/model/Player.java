@@ -13,6 +13,8 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Transient;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,6 +25,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties("players2matchdays")
 public class Player {
 
   @Id
@@ -36,6 +39,7 @@ public class Player {
 
   @ManyToOne(cascade = CascadeType.REMOVE)
   @JoinColumn(name = "clubID")
+  @JsonIgnoreProperties("players")
   private Club club;
 
   @OneToMany(mappedBy = "player", fetch = FetchType.EAGER)
