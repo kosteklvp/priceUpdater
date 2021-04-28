@@ -41,6 +41,8 @@ import com.kosteklvp.priceupdater.utilities.TimeUtil;
 @Configuration
 public class DatabasePreparation {
 
+  private final long MATCHDAY_ID = 12;
+
   private static final Logger log = LoggerFactory.getLogger(DatabasePreparation.class);
 
   @Autowired
@@ -88,10 +90,9 @@ public class DatabasePreparation {
       matchdayRepo.save(Matchday.builder().id(i).build());
     }
 
-    matchdayRepo.save(Matchday.builder().id(11).build());
+    matchdayRepo.save(Matchday.builder().id(MATCHDAY_ID).build());
   }
 
-//
   private void loadClubs() throws Exception {
     Matchday currentMatchday = matchdayRepo.findTopByOrderByIdDesc();
     URIBuilder uriBuilder = new URIBuilder(UEFAGaming.ServiceURL.PLAYERS.get())
@@ -153,7 +154,7 @@ public class DatabasePreparation {
 
   private void loadPrices() throws Exception {
     List<Players2Matchdays> players2Matchdays = new ArrayList<>();
-    Matchday matchday = Matchday.builder().id(Long.valueOf(11)).build();
+    Matchday matchday = Matchday.builder().id(MATCHDAY_ID).build();
 
     URIBuilder uriBuilder = new URIBuilder(UEFAGaming.ServiceURL.PLAYERS.get())
         .setParameter(UEFAGaming.PlayersJSONKey.GAMEDAY_ID.get(), Long.toString(matchday.getId()))

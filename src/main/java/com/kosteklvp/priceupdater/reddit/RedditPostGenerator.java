@@ -6,6 +6,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -14,10 +15,15 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.kosteklvp.priceupdater.PriceUpdaterApplication;
 import com.kosteklvp.priceupdater.model.Matchday;
 import com.kosteklvp.priceupdater.repository.Players2MatchdaysRepo;
+import com.kosteklvp.table.TableGenerator;
+import com.kosteklvp.table.TableHeading;
+import com.kosteklvp.table.TableRow;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 @Configuration
 public class RedditPostGenerator {
@@ -28,25 +34,48 @@ public class RedditPostGenerator {
   public CommandLineRunner generateRedditPost(Players2MatchdaysRepo players2MatchdaysRepo) {
     return args -> {
       List<Object[]> priceChanges = players2MatchdaysRepo.getPriceChangesByMatchday(
-          Matchday.builder().id(Long.valueOf(10)).build());
+          Matchday.builder().id(PriceUpdaterApplication.MATCHDAY_ID).build());
 
-      List<Object[]> priceRises = priceChanges.stream()
-          .filter(record -> ((BigDecimal) record[PriceChangeIndex.CHANGE.get()]).signum() > 0)
+      List<TableRow> priceRises = priceChanges.stream()
+          .filter(record -> ((BigDecimal) record[PriceChangeTableHeading.PRICE_CHANGE.getIndex()]).signum() > 0)
+          .map(getRecordToTableRowMapper())
           .collect(Collectors.toList());
-      List<Object[]> priceFalls = priceChanges.stream()
-          .filter(record -> ((BigDecimal) record[PriceChangeIndex.CHANGE.get()]).signum() < 0)
+
+      List<TableRow> priceFalls = priceChanges.stream()
+          .filter(record -> ((BigDecimal) record[PriceChangeTableHeading.PRICE_CHANGE.getIndex()]).signum() < 0)
+          .map(getRecordToTableRowMapper())
           .collect(Collectors.toList());
 
       StringBuilder postText = new StringBuilder();
 
+      TableGenerator priceRisesTableGenerator = TableGenerator.builder()
+          .headings(PriceChangeTableHeading.getAll())
+          .rows(priceRises)
+          .build();
+
+      TableGenerator priceFallsTableGenerator = TableGenerator.builder()
+          .headings(PriceChangeTableHeading.getAll())
+          .rows(priceFalls)
+          .build();
+
       postText.append(String.format("# Price risers (%s):", priceRises.size()));
-      postText.append(generateTable(priceRises, PriceChangeType.RISE));
+      postText.append(priceRisesTableGenerator.generate());
 
       postText.append(String.format("# Price fallers (%s):", priceFalls.size()));
-      postText.append(generateTable(priceFalls, PriceChangeType.FALL));
+      postText.append(priceFallsTableGenerator.generate());
 
       saveTextToFile(postText.toString(), "target/priceUpdates.txt");
     };
+  }
+
+  private Function<Object[], PriceChangeRow> getRecordToTableRowMapper() {
+    return record -> PriceChangeRow.builder()
+        .playerName((String) record[PriceChangeTableHeading.PLAYER_NAME.getIndex()])
+        .teamName((String) record[PriceChangeTableHeading.TEAM_NAME.getIndex()])
+        .previousPrice(record[PriceChangeTableHeading.PREVIOUS_PRICE.getIndex()].toString())
+        .currentPrice(record[PriceChangeTableHeading.CURRENT_PRICE.getIndex()].toString())
+        .priceChange(record[PriceChangeTableHeading.PRICE_CHANGE.getIndex()].toString())
+        .build();
   }
 
   private void saveTextToFile(String text, String fileName) throws FileNotFoundException {
@@ -58,60 +87,55 @@ public class RedditPostGenerator {
     out.close();
   }
 
-  private enum PriceChangeType {
-    RISE, FALL;
-  }
-
-  private String generateTable(List<Object[]> priceUpdates, PriceChangeType priceChangeType) {
-    StringBuilder table = new StringBuilder();
-    table.append("&#x200B;\n\n");
-
-    // headtitles
-    List<String> columnTitles = List.of("Player", "Team", "Previous price", "Current price", "Price change");
-    table.append("|");
-    for (String title : columnTitles) {
-      table.append(title);
-      table.append("|");
-    }
-    table.append("\n").append("|");
-    table.append(":-").append("|");
-    table.append(":-").append("|");
-    table.append("-:").append("|");
-    table.append("-:").append("|");
-    table.append("-:").append("|").append("\n");
-
-    // rows
-    for (Object[] record : priceUpdates) {
-      table.append("|");
-      table.append(record[PriceChangeIndex.PLAYER_NAME.get()]).append("|");
-      table.append(record[PriceChangeIndex.CLUB_NAME.get()]).append("|");
-      table.append(record[PriceChangeIndex.PREVIOUS_PRICE.get()]).append("|");
-      table.append(record[PriceChangeIndex.CURRENT_PRICE.get()]).append("|");
-
-      BigDecimal priceChange = (BigDecimal) record[PriceChangeIndex.CHANGE.get()];
-      table.append("**")
-          .append(PriceChangeType.RISE.equals(priceChangeType) ? "+" : "").append(priceChange)
-          .append("**");
-      table.append("|\n");
-    }
-    table.append("\n").append("&#x200B;").append("\n");
-
-    log.info("GENERATED TABLE \"{}\"", priceChangeType);
-    return table.toString();
-  }
-
   @AllArgsConstructor
-  private enum PriceChangeIndex {
-    PLAYER_NAME(0),
-    CLUB_NAME(1),
-    PREVIOUS_PRICE(2),
-    CURRENT_PRICE(3),
-    CHANGE(4);
+  private enum PriceChangeTableHeading implements TableHeading {
+    PLAYER_NAME("Player", Align.LEFT, 1),
+    TEAM_NAME("Team", Align.LEFT, 2),
+    PREVIOUS_PRICE("Previous price", Align.RIGHT, 3),
+    CURRENT_PRICE("Current price", Align.RIGHT, 4),
+    PRICE_CHANGE("Price change", Align.RIGHT, 5);
 
+    private final String name;
+    private final Align align;
     private final int index;
 
-    public int get() {
+    @Override
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public Align getAlign() {
+      return align;
+    }
+
+    public int getIndex() {
       return index;
+    }
+
+    public static List<TableHeading> getAll() {
+      return List.of(values());
+    }
+  }
+
+  @Builder
+  @AllArgsConstructor
+  public static class PriceChangeRow implements TableRow {
+
+    private final String playerName;
+    private final String teamName;
+    private final String previousPrice;
+    private final String currentPrice;
+    private final String priceChange;
+
+    @Override
+    public List<String> getValues() {
+      return List.of(
+          playerName,
+          teamName,
+          previousPrice,
+          currentPrice,
+          priceChange);
     }
   }
 
