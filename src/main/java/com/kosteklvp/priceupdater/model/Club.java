@@ -31,4 +31,9 @@ public class Club {
   @OneToMany(mappedBy = "club", cascade = CascadeType.REMOVE)
   private List<Player> players;
 
+  @Override
+  public String toString() {
+    return "Club [id=" + id + ", name=" + name + ", code=" + code + "]";
+  }
+
 }

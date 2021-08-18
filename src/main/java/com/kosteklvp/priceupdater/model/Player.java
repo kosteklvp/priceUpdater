@@ -19,12 +19,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString()
 @JsonIgnoreProperties("players2matchdays")
 public class Player {
 
@@ -44,5 +46,10 @@ public class Player {
 
   @OneToMany(mappedBy = "player", fetch = FetchType.EAGER)
   private List<Players2Matchdays> players2matchdays;
+
+  @Override
+  public String toString() {
+    return "Player [id=" + id + ", name=" + name + ", value=" + value + ", club=" + club.getName() + "]";
+  }
 
 }
